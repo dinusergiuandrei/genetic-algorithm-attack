@@ -1,0 +1,7 @@
+function,dimensions,bits,ga_min,real_min
+Axis parallel hyper-ellipsoid,5,23,1.5388905627969285,0
+Axis parallel hyper-ellipsoid,10,23,55.324266205113865,0
+Axis parallel hyper-ellipsoid,50,23,4305.112291528562,0
+Axis parallel hyper-ellipsoid,100,23,22229.606633600448,0
+Axis parallel hyper-ellipsoid,500,23,815903.5004202949,0
+Axis parallel hyper-ellipsoid,1000,23,3705878.5123745576,0

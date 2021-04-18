@@ -39,5 +39,9 @@ def find_number_of_bits(tolerance=1e-6, lower_bound=-1, upper_bound=1, n_tests=1
     return n_bits
 
 
+def number_of_bits_for_int(n):
+    return len(bin(n)[2:])
+
+
 if __name__ == '__main__':
     print(find_number_of_bits())
