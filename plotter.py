@@ -6,8 +6,8 @@ import matplotlib.pyplot as plt
 
 
 def plot_per_generation():
-    for file in os.listdir('per_generation'):
-        location = os.path.join('per_generation', file)
+    for file in os.listdir('history'):
+        location = os.path.join('history', file)
         history = -np.load(location)
         fname = os.path.splitext(file)[0]
         df = pd.DataFrame(history).T.melt()
@@ -28,4 +28,4 @@ def plot_time():
 
 
 if __name__ == '__main__':
-    plot_time()
+    plot_per_generation()
