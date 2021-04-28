@@ -2,11 +2,10 @@ import multiprocessing
 
 import numpy as np
 
-from bits import find_number_of_bits
-from functions import functions
-from genetic_algorithm import genetic_algorithm
+from utils.bits import find_number_of_bits
+from small_ga.functions import functions
+from small_ga.genetic_algorithm import genetic_algorithm
 from main import generate_random_ga_bits
-from tqdm import tqdm
 
 
 def search_number_of_workers(func, dims):

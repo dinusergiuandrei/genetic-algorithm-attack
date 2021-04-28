@@ -6,8 +6,8 @@ import matplotlib.pyplot as plt
 
 
 def plot_per_generation():
-    for file in os.listdir('history'):
-        location = os.path.join('history', file)
+    for file in os.listdir('../history'):
+        location = os.path.join('../history', file)
         history = -np.load(location)
         fname = os.path.splitext(file)[0]
         df = pd.DataFrame(history).T.melt()
@@ -21,7 +21,7 @@ def plot_per_generation():
 
 
 def plot_time():
-    df = pd.read_csv('time_result.csv')
+    df = pd.read_csv('../time_result.csv')
     df['times'] = df.times
     sns.lineplot(x='workers', y='times', data=df)
     plt.savefig(f'plots/time_by_workers.png', format='PNG')

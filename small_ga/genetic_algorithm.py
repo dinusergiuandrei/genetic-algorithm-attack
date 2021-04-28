@@ -1,9 +1,7 @@
 import numpy as np
-from tqdm import tqdm
 
-from bits import bits_to_number
+from utils.bits import bits_to_number
 import multiprocessing as mp
-from time import time
 
 
 def initialize_population(pop_size, init_bits):
@@ -91,7 +89,7 @@ def genetic_algorithm(genetic_algorithm_bits, bits_per_value, function, n_dimens
     global_best_score = -np.inf
     history = []
     pool = mp.Pool(processes=num_workers)
-    for generation in np.arange(num_generations):
+    for _ in np.arange(num_generations):
         # mutation
 
         num_mutation_bits = int(num_init_bits * mutation_rate)
@@ -107,6 +105,7 @@ def genetic_algorithm(genetic_algorithm_bits, bits_per_value, function, n_dimens
         genetic_algorithm_bits = genetic_algorithm_bits[num_cx_bits:]
 
         scores = evaluate_population(population, function, n_dimensions, pool)
+        history.append(scores)
 
         # update global best
         best_index = scores.argmax()
@@ -120,9 +119,7 @@ def genetic_algorithm(genetic_algorithm_bits, bits_per_value, function, n_dimens
         selection_bits = genetic_algorithm_bits[:num_selection_bits]
         population = select_next_generation(population, global_best_individual, tournament_size, scores, selection_bits)
         genetic_algorithm_bits = genetic_algorithm_bits[num_selection_bits:]
-        history.append(scores)
     pool.close()
-    print('Bits left: ', len(genetic_algorithm_bits))
     return {
         'history': np.array(history),
         'best_score': -global_best_score,
