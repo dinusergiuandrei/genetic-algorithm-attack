@@ -52,7 +52,7 @@ def individual_to_values(individual, function, n_dimensions):
 
 
 def eval_individual(individual, function, n_dimensions):
-    return -function.eval(individual_to_values(individual, function, n_dimensions))
+    return function.eval(individual_to_values(individual, function, n_dimensions))
 
 
 def evaluate_population(population, function, n_dimensions, pool):
@@ -70,7 +70,7 @@ def select_next_generation(population, global_best_individual, tournament_size, 
         int_positions = selection_bits[:tournament_size]
         tournament_scores = np.array([scores[p] for p in int_positions])
 
-        winner_position = int_positions[tournament_scores.argmax()]
+        winner_position = int_positions[tournament_scores.argmin()]
         winner = population[winner_position]
         new_population.append(np.array(winner))
         selection_bits = selection_bits[tournament_size:]
@@ -86,7 +86,7 @@ def genetic_algorithm(genetic_algorithm_bits, bits_per_value, function, n_dimens
     genetic_algorithm_bits = genetic_algorithm_bits[num_init_bits:]
 
     global_best_individual = None
-    global_best_score = -np.inf
+    global_best_score = np.inf
     history = []
     pool = mp.Pool(processes=num_workers)
     for _ in np.arange(num_generations):
@@ -108,9 +108,9 @@ def genetic_algorithm(genetic_algorithm_bits, bits_per_value, function, n_dimens
         history.append(scores)
 
         # update global best
-        best_index = scores.argmax()
+        best_index = scores.argmin()
         generation_best_score = scores[best_index]
-        if generation_best_score > global_best_score:
+        if generation_best_score < global_best_score:
             global_best_score = generation_best_score
             global_best_individual = np.array(population[best_index])
 
@@ -118,10 +118,11 @@ def genetic_algorithm(genetic_algorithm_bits, bits_per_value, function, n_dimens
         num_selection_bits = (pop_size - 1) * tournament_size
         selection_bits = genetic_algorithm_bits[:num_selection_bits]
         population = select_next_generation(population, global_best_individual, tournament_size, scores, selection_bits)
+
         genetic_algorithm_bits = genetic_algorithm_bits[num_selection_bits:]
     pool.close()
     return {
         'history': np.array(history),
-        'best_score': -global_best_score,
+        'best_score': global_best_score,
         'best_individual': individual_to_values(global_best_individual, function, n_dimensions),
     }

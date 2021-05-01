@@ -6,7 +6,7 @@ from utils.bits import find_number_of_bits
 from small_ga.functions import functions
 from small_ga.genetic_algorithm import genetic_algorithm
 from main import generate_random_ga_bits
-
+from time import time
 
 def search_number_of_workers(func, dims):
     g_pop_size = 30
@@ -25,10 +25,11 @@ def search_number_of_workers(func, dims):
 
     for num_workers in np.arange(1, multiprocessing.cpu_count() * 2 + 1):
         print('Workers: ', num_workers)
+        start_time = time()
         ga_result = genetic_algorithm(ga_bits, g_bits_per_value, func, g_dimensions,
                                     g_pop_size, g_num_generations, g_selection_pool_size,
                                     0.05, g_tournament_size,num_workers=num_workers)
-        avg_eval_time = np.mean(ga_result['evaluation_times'])
+        avg_eval_time = time() - start_time
         if lowest_time is None or avg_eval_time < lowest_time:
             lowest_time = avg_eval_time
             best_num_workers = num_workers
