@@ -5,6 +5,7 @@ from utils.bits import find_number_of_bits
 from tqdm import tqdm
 import numpy as np
 import os
+import multiprocessing as mp
 
 from utils.parallel import search_number_of_workers
 import pickle
@@ -93,11 +94,12 @@ def meta_crossover(population, selection_pool_size):
     return np.array(new_population, dtype='int')
 
 
-def meta_evaluate(population, small_ga_params, function, n_dimensions, num_workers,
+def meta_evaluate(population, small_ga_params, function, n_dimensions,
                   bits_per_value, meta_intention, min_possible_mutation_rate,
-                  max_possible_mutation_rate):
+                  max_possible_mutation_rate, max_plateau_stop, pool):
     scores = []
-    all_results = []
+    all_histories = []
+    all_final_populations = []
 
     num_init_bits = bits_per_value * n_dimensions * small_ga_params.pop_size
     num_mutation_bits = int(num_init_bits * small_ga_params.mutation_rate)
@@ -106,24 +108,21 @@ def meta_evaluate(population, small_ga_params, function, n_dimensions, num_worke
     num_generation_bits = num_mutation_bits + num_cx_bits + num_selection_bits
 
     for individual in population:
-
-        min_mutation_rate = 1
-        max_mutation_rate = 0
         generational_bits = np.array(individual[num_init_bits:])
+        mutation_rates = []
         for _ in range(small_ga_params.num_generations):
             mutation_bits = generational_bits[:num_mutation_bits]
             this_mutation_rate = len(np.unique(mutation_bits)) / num_init_bits
-
-            min_mutation_rate = min(min_mutation_rate, this_mutation_rate)
-            max_mutation_rate = max(max_mutation_rate, this_mutation_rate)
+            mutation_rates.append(this_mutation_rate)
             generational_bits = generational_bits[num_generation_bits:]
-
-        invalid_mutation_rate = max_mutation_rate > max_possible_mutation_rate or \
-                                min_mutation_rate < min_possible_mutation_rate
+        real_mutation_rate = np.mean(mutation_rates)
+        invalid_mutation_rate = real_mutation_rate > max_possible_mutation_rate or \
+                                real_mutation_rate < min_possible_mutation_rate
 
         if invalid_mutation_rate:
-            scores.append(0)
-            all_results.append(None)
+            scores.append(np.inf)
+            all_histories.append(None)
+            all_final_populations.append(None)
         else:
             ga_result = genetic_algorithm(
                 genetic_algorithm_bits=individual,
@@ -135,12 +134,14 @@ def meta_evaluate(population, small_ga_params, function, n_dimensions, num_worke
                 selection_pool_size=small_ga_params.selection_pool_size,
                 mutation_rate=small_ga_params.mutation_rate,
                 tournament_size=small_ga_params.tournament_size,
-                num_workers=num_workers,
+                pool=pool,
+                max_plateau_stop=max_plateau_stop
             )
-            all_results.append(ga_result)
+            all_histories.append(ga_result['history'])
+            all_final_populations.append(ga_result['final_population'])
             ga_result['best_score'] = ga_result['best_score'] * meta_intention
             scores.append(ga_result['best_score'])
-    return np.array(scores), all_results
+    return np.array(scores), np.array(all_histories, dtype=object), np.array(all_final_populations, dtype=object)
 
 
 def meta_tournament(population, global_best_individual, scores, tournament_size):
@@ -165,9 +166,11 @@ class GAParams:
         self.tournament_size = tournament_size
 
 
-def meta_genetic_algorithm(meta_ga_params, small_ga_params, function, n_dimensions, num_workers, bits_per_value,
-                           meta_intention, min_possible_mutation_rate, max_possible_mutation_rate):
-    ga_folder = os.path.join('results', f'{function.name}_{meta_intention}')
+def meta_genetic_algorithm(meta_ga_params, small_ga_params, function, n_dimensions, bits_per_value,
+                           meta_intention, min_possible_mutation_rate, max_possible_mutation_rate,
+                           small_max_plateau_stop, pool):
+    intention_string = {1: 'help', -1: 'attack'}[meta_intention]
+    ga_folder = os.path.join('results', f'{function.name}_{intention_string}_{bits_per_value}_bits')
     if not os.path.exists(ga_folder):
         os.mkdir(ga_folder)
 
@@ -185,9 +188,10 @@ def meta_genetic_algorithm(meta_ga_params, small_ga_params, function, n_dimensio
                                       bits_per_value, n_dimensions, small_ga_params.tournament_size,
                                       small_ga_params.selection_pool_size, small_ga_params.mutation_rate)
         meta_population = meta_crossover(meta_population, meta_ga_params.selection_pool_size)
-        scores, all_results = meta_evaluate(meta_population, small_ga_params, function, n_dimensions, num_workers,
-                                            bits_per_value, meta_intention, min_possible_mutation_rate,
-                                            max_possible_mutation_rate)
+        scores, all_histories, all_final_populations = meta_evaluate(
+            meta_population, small_ga_params, function, n_dimensions,
+            bits_per_value, meta_intention, min_possible_mutation_rate,
+            max_possible_mutation_rate, small_max_plateau_stop, pool=pool)
 
         # update global best
 
@@ -203,8 +207,9 @@ def meta_genetic_algorithm(meta_ga_params, small_ga_params, function, n_dimensio
             os.mkdir(generation_path)
 
         np.save(os.path.join(generation_path, 'scores.npy'), scores)
-        np.save(os.path.join(generation_path, 'meta_population.npy'), meta_population)
-        save_pickle(os.path.join(generation_path, 'small_ga_run_history.pickle'), all_results)
+        np.save(os.path.join(generation_path, 'best_meta_individual.npy'), global_best_meta_individual)
+        np.save(os.path.join(generation_path, 'small_ga_run_history.npy'), all_histories)
+        np.save(os.path.join(generation_path, 'small_ga_final_populations.npy'), all_final_populations)
 
         meta_population = meta_tournament(meta_population, global_best_meta_individual, scores,
                                           meta_ga_params.tournament_size)
@@ -217,32 +222,36 @@ def prepare_experiment():
 
 def run_experiment():
     prepare_experiment()
-    n_dimensions = 100
-    min_possible_mutation_rate = 0.005
+    n_dimensions = 20
+    min_possible_mutation_rate = 0.001
     max_possible_mutation_rate = 0.07
+    max_plateau_stop = 100
+    tolerance = 1e-6
 
-    meta_ga_params = GAParams(pop_size=30, num_generations=5, selection_pool_size=20,
-                              mutation_rate=0.05, tournament_size=5)
+    meta_ga_params = GAParams(pop_size=30, num_generations=350, selection_pool_size=20,
+                              mutation_rate=0.01, tournament_size=5)
 
-    small_ga_params = GAParams(pop_size=30, num_generations=30, selection_pool_size=20,
-                               mutation_rate=0.05, tournament_size=5)
+    small_ga_params = GAParams(pop_size=30, num_generations=3000, selection_pool_size=20,
+                               mutation_rate=0.01, tournament_size=5)
 
-    # num_workers = search_number_of_workers(functions[0], n_dimensions)
+    num_workers = search_number_of_workers(functions[0], n_dimensions)
 
-    # response = input(f'Suggested number of workers: {num_workers}. (Y/<number>)')
-    # if response not in ['y', 'Y']:
-    #     num_workers = int(response)
-    num_workers = 4
+    response = input(f'Suggested number of workers: {num_workers}. (Y/<number>)')
+    if response not in ['y', 'Y']:
+        num_workers = int(response)
 
-    for function in functions[:2]:
+    # num_workers = 4
+    pool = mp.Pool(processes=num_workers)
+
+    for function in functions:
         lb, ub = function.lower_bound, function.upper_bound
-        lb, ub = -1, 1
-        bits_per_value = find_number_of_bits(lower_bound=lb, upper_bound=ub, tolerance=1e-2)
-        print(function.name, bits_per_value)
+        bits_per_value = find_number_of_bits(lower_bound=lb, upper_bound=ub, tolerance=tolerance)
         for intention in [1, -1]:
+            print(function.name, bits_per_value, {1: 'help', -1: 'attack'}[intention])
             meta_genetic_algorithm(
                 meta_ga_params, small_ga_params, function, n_dimensions,
-                num_workers, bits_per_value, intention, min_possible_mutation_rate, max_possible_mutation_rate)
+                bits_per_value, intention, min_possible_mutation_rate, max_possible_mutation_rate,
+                small_max_plateau_stop=max_plateau_stop, pool=pool)
 
 
 if __name__ == '__main__':

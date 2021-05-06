@@ -6,15 +6,17 @@ import matplotlib.pyplot as plt
 
 
 def plot_per_generation():
-    for file in os.listdir('../history'):
-        location = os.path.join('../history', file)
-        history = -np.load(location)
+    for file in os.listdir('history'):
+        location = os.path.join('history', file)
+        history = np.load(location)
         fname = os.path.splitext(file)[0]
         df = pd.DataFrame(history).T.melt()
         df.columns = ['generation', 'value']
 
         # _ = sns.lineplot(x='generation', y='value', data=df).set_title(fname)
-        df.groupby('generation').min().plot()
+        s = df.groupby('generation').min()
+        ax = s.plot()
+        _ = ax.set_title(str(s.min()))
         plt.savefig(f'plots/{fname}.png', format='PNG')
         plt.clf()
         print(fname, history.shape)

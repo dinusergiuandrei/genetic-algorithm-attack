@@ -2,6 +2,7 @@ import numpy as np
 
 from utils.bits import bits_to_number
 import multiprocessing as mp
+from tqdm import tqdm
 
 
 def initialize_population(pop_size, init_bits):
@@ -15,7 +16,8 @@ def mutate_population(population, mutation_bits):
 
     flat_population[mutation_positions] = 1 - flat_population[mutation_positions]
 
-    return population.reshape(original_population_shape)
+    mutated = flat_population.reshape(original_population_shape)
+    return mutated
 
 
 def cross_over_population(population, cross_over_bits, selection_pool_size):
@@ -79,7 +81,8 @@ def select_next_generation(population, global_best_individual, tournament_size, 
 
 
 def genetic_algorithm(genetic_algorithm_bits, bits_per_value, function, n_dimensions,
-                      pop_size, num_generations, selection_pool_size, mutation_rate, tournament_size, num_workers=8):
+                      pop_size, num_generations, selection_pool_size, mutation_rate, tournament_size,
+                      max_plateau_stop=50, verbose=False, pool=None):
     num_init_bits = bits_per_value * n_dimensions * pop_size
     init_bits = genetic_algorithm_bits[:num_init_bits]
     population = initialize_population(pop_size, init_bits=init_bits)
@@ -88,8 +91,14 @@ def genetic_algorithm(genetic_algorithm_bits, bits_per_value, function, n_dimens
     global_best_individual = None
     global_best_score = np.inf
     history = []
-    pool = mp.Pool(processes=num_workers)
-    for _ in np.arange(num_generations):
+
+    space = np.arange(num_generations)
+    if verbose:
+        space = tqdm(space, leave=False)
+
+    best_history = []
+
+    for _ in space:
         # mutation
 
         num_mutation_bits = int(num_init_bits * mutation_rate)
@@ -114,15 +123,22 @@ def genetic_algorithm(genetic_algorithm_bits, bits_per_value, function, n_dimens
             global_best_score = generation_best_score
             global_best_individual = np.array(population[best_index])
 
+        best_history.append(global_best_score)
+
         # tournament selection
         num_selection_bits = (pop_size - 1) * tournament_size
         selection_bits = genetic_algorithm_bits[:num_selection_bits]
         population = select_next_generation(population, global_best_individual, tournament_size, scores, selection_bits)
 
         genetic_algorithm_bits = genetic_algorithm_bits[num_selection_bits:]
-    pool.close()
+
+        if len(best_history) > max_plateau_stop + 1 and abs(best_history[-max_plateau_stop] - best_history[-1]) < 1e-3:
+            break
+
+    # pool.close()
     return {
         'history': np.array(history),
         'best_score': global_best_score,
         'best_individual': individual_to_values(global_best_individual, function, n_dimensions),
+        'final_population': population
     }

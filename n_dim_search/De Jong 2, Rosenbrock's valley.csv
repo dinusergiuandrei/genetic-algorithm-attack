@@ -1,7 +1,0 @@
-function,dimensions,bits,ga_min,real_min
-"De Jong 2, Rosenbrock's valley",5,31,-1590044543.9935422,0
-"De Jong 2, Rosenbrock's valley",10,31,-3149750420.7022724,0
-"De Jong 2, Rosenbrock's valley",50,31,-12120664321.464136,0
-"De Jong 2, Rosenbrock's valley",100,31,-21753676112.686676,0
-"De Jong 2, Rosenbrock's valley",500,32,-83369041715.62834,0
-"De Jong 2, Rosenbrock's valley",1000,31,-164579948876.29938,0

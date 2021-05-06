@@ -45,11 +45,11 @@ def ackley10(x):
 
 functions_data = [
     ('De Jong 1', de_jong_1, 0, -5.12, 5.12),
-    ('Rastrigin 6', rastrigin_6, 0, -5.12, 5.12),
-    ('Schwefel 7', schwefel7,  - 100 * 418.9829, -500, 500),
-    ('Griewangk 8', griewangk8, 0, -600, 600),
+    # ('Rastrigin 6', rastrigin_6, 0, -5.12, 5.12),
     ('Sum of different power 9', power_sum, 0, -1, 1),
     ('Ackley\'s Path 10', ackley10, 0, -1, 1),
+    ('Schwefel 7', schwefel7,  - 20 * 418.9829, -500, 500),
+    ('Griewangk 8', griewangk8, 0, -600, 600),
     # ('Axis parallel hyper-ellipsoid', lambda x: np.sum(np.arange(1, len(x) + 1) * np.power(x, 2)), 0, -5.12, 5.12),
     # ('Rotated hyper-ellipsoid', lambda x: np.sum(np.cumsum(np.power(x, 2))), 0, -65.536, 65.536),
     # ('Moved axis parallel hyper-ellipsoid', lambda x: np.sum(5 * np.arange(1, len(x) + 1) * np.power(x, 2)), 0, -5.12,
