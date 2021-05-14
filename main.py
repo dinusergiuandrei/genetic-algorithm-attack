@@ -17,7 +17,7 @@ def run_ga(func, n_dim, tol=1e-4, mutation_rate=0.01):
     g_num_generations = 3000
     max_plateau_stop = 100
     g_dimensions = n_dim
-    num_workers = 4
+    num_workers = 6
 
     g_bits_per_value = find_number_of_bits(lower_bound=func.lower_bound, upper_bound=func.upper_bound, tolerance=tol)
 

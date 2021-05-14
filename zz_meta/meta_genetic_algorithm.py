@@ -228,7 +228,7 @@ def run_experiment():
     max_plateau_stop = 100
     tolerance = 1e-6
 
-    meta_ga_params = GAParams(pop_size=30, num_generations=350, selection_pool_size=20,
+    meta_ga_params = GAParams(pop_size=30, num_generations=300, selection_pool_size=20,
                               mutation_rate=0.01, tournament_size=5)
 
     small_ga_params = GAParams(pop_size=30, num_generations=3000, selection_pool_size=20,
@@ -248,10 +248,14 @@ def run_experiment():
         bits_per_value = find_number_of_bits(lower_bound=lb, upper_bound=ub, tolerance=tolerance)
         for intention in [1, -1]:
             print(function.name, bits_per_value, {1: 'help', -1: 'attack'}[intention])
+            if function == functions[0] and intention == 1:
+                continue
             meta_genetic_algorithm(
                 meta_ga_params, small_ga_params, function, n_dimensions,
                 bits_per_value, intention, min_possible_mutation_rate, max_possible_mutation_rate,
                 small_max_plateau_stop=max_plateau_stop, pool=pool)
+
+    pool.close()
 
 
 if __name__ == '__main__':
