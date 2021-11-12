@@ -1,0 +1,6 @@
+function,score,mutation,tolerance
+De Jong 1,5.885643425140275e-05,0.01,1e-06
+Schwefel 7,-8260.317197800268,0.01,1e-06
+Griewangk 8,0.02073932278701751,0.01,1e-06
+Sum of different power 9,1.4460497052617428e-12,0.01,1e-06
+Ackley's Path 10,0.0024465544491545366,0.01,1e-06
